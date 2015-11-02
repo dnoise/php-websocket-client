@@ -53,6 +53,11 @@ class WebSocketClient
     /**
      * @var string
      */
+    private $cookies;
+
+    /**
+     * @var string
+     */
     private $path;
 
     /**
@@ -78,7 +83,7 @@ class WebSocketClient
      * @param string $path
      * @param null|string $origin
      */
-    public function __construct(WebSocketClientInterface $client, LoopInterface $loop, $host = '127.0.0.1', $port = 8080, $path = '/', $origin = null)
+    public function __construct(WebSocketClientInterface $client, LoopInterface $loop, $host = '127.0.0.1', $port = 8080, $path = '/', $origin = null, $cookies = [])
     {
         $this->setLoop($loop);
         $this->setHost($host);
@@ -86,6 +91,7 @@ class WebSocketClient
         $this->setPath($path);
         $this->setClient($client);
         $this->setOrigin($origin);
+        $this->setCookies($cookies);
         $this->setKey($this->generateToken(self::TOKEN_LENGHT));
 
         $this->connect();
@@ -119,6 +125,7 @@ class WebSocketClient
             $data = $root->parseIncomingRaw($data);
             $root->parseData($data);
         });
+
         $this->getSocket()->write($this->createHeader());
 
         return $this;
@@ -290,6 +297,7 @@ class WebSocketClient
         }
 
         $origin = $this->getOrigin() ? $this->getOrigin() : "null";
+        $cookies = !empty($this->getCookies()) ? sprintf("Cookie: %s\r\n", implode(';', $this->getCookies())) : "";
 
         return
             "GET {$this->getPath()} HTTP/1.1" . "\r\n" .
@@ -297,6 +305,7 @@ class WebSocketClient
             "Host: {$host}:{$this->getPort()}" . "\r\n" .
             "Sec-WebSocket-Key: {$this->getKey()}" . "\r\n" .
             "User-Agent: PHPWebSocketClient/" . self::VERSION . "\r\n" .
+            $cookies.
             "Upgrade: websocket" . "\r\n" .
             "Connection: Upgrade" . "\r\n" .
             "Sec-WebSocket-Protocol: wamp" . "\r\n" .
@@ -454,6 +463,24 @@ class WebSocketClient
     {
         return $this->origin;
     }
+
+    /**
+     * @return string
+     */
+    public function getCookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * @param string $cookies
+     */
+    public function setCookies($cookies)
+    {
+        $this->cookies = $cookies;
+    }
+
+
 
     /**
      * @param string $key
